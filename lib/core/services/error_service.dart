@@ -218,7 +218,6 @@ class ErrorService {
       case ErrorType.cancelled:
         return 'The operation was cancelled.';
       case ErrorType.unknown:
-      default:
         return 'An unexpected error occurred. Please try again.';
     }
   }

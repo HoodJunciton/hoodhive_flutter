@@ -7,6 +7,8 @@ import '../../widgets/home/dashboard_card.dart';
 import '../../widgets/home/quick_actions.dart';
 import '../../widgets/home/recent_bills.dart';
 import '../../widgets/common/app_drawer.dart';
+import '../../widgets/home/role_based_dashboard.dart';
+import '../../widgets/home/welcome_banner.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -14,64 +16,87 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final billsSummaryAsync = ref.watch(billsSummaryProvider);
+    
+    // Check if user needs onboarding
+    if (user != null && (!user.isProfileComplete || !user.hasAllocation)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!user.isProfileComplete) {
+          Navigator.pushReplacementNamed(context, '/profile-setup');
+        } else if (!user.hasAllocation) {
+          Navigator.pushReplacementNamed(context, '/society-selection');
+        }
+      });
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('HoodJunction'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              // Navigate to notifications
-            },
+      body: CustomScrollView(
+        slivers: [
+          // Custom App Bar
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: false,
+            pinned: true,
+            backgroundColor: Theme.of(context).primaryColor,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).primaryColor,
+                      Theme.of(context).primaryColor.withOpacity(0.8),
+                    ],
+                  ),
+                ),
+              ),
+              title: Text(
+                'HoodJunction',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/notifications');
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.account_circle_outlined, color: Colors.white),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/profile');
+                },
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: () {
-              // Force refresh data
-              ref.invalidate(billsSummaryProvider);
-              ref.invalidate(pendingBillsProvider);
-            },
+          
+          // Main Content
+          SliverToBoxAdapter(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(billsSummaryProvider);
+                ref.invalidate(pendingBillsProvider);
+              },
+              child: Column(
+                children: [
+                  // Welcome Banner
+                  WelcomeBanner(user: user),
+                  
+                  // Role-based Dashboard
+                  RoleBasedDashboard(user: user),
+                  
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
           ),
         ],
       ),
       drawer: const AppDrawer(),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(billsSummaryProvider);
-          ref.invalidate(pendingBillsProvider);
-        },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Welcome Section
-              _buildWelcomeSection(user?.displayName ?? 'User'),
-              
-              const SizedBox(height: 24),
-              
-              // Dashboard Cards
-              billsSummaryAsync.when(
-                data: (summary) => _buildDashboardCards(summary),
-                loading: () => _buildDashboardCardsLoading(),
-                error: (error, _) => _buildErrorCard(error.toString()),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Quick Actions
-              const QuickActions(),
-              
-              const SizedBox(height: 24),
-              
-              // Recent Bills
-              const RecentBills(),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

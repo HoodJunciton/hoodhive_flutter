@@ -88,6 +88,9 @@ dependencies:
   flutter_spinkit: ^5.2.1
   shimmer: ^3.0.0
   
+  # Typography
+  google_fonts: ^6.2.1
+  
   # Logging
   logger: ^2.5.0
 

@@ -3,9 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/providers/auth_provider.dart';
 import 'core/services/sync_service.dart';
+import 'core/theme/app_theme.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/splash/splash_screen.dart';
+import 'screens/onboarding/profile_setup_screen.dart';
+import 'screens/onboarding/society_selection_screen.dart';
+import 'screens/onboarding/unit_selection_screen.dart';
+import 'screens/onboarding/allocation_request_screen.dart';
+import 'screens/onboarding/request_submitted_screen.dart';
+import 'core/models/society_model.dart';
 import 'widgets/common/connectivity_banner.dart';
 
 class HoodJunctionApp extends ConsumerStatefulWidget {
@@ -15,7 +22,8 @@ class HoodJunctionApp extends ConsumerStatefulWidget {
   ConsumerState<HoodJunctionApp> createState() => _HoodJunctionAppState();
 }
 
-class _HoodJunctionAppState extends ConsumerState<HoodJunctionApp> with WidgetsBindingObserver {
+class _HoodJunctionAppState extends ConsumerState<HoodJunctionApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -32,7 +40,7 @@ class _HoodJunctionAppState extends ConsumerState<HoodJunctionApp> with WidgetsB
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
+
     // Sync when app comes to foreground
     if (state == AppLifecycleState.resumed) {
       SyncService.syncAll();
@@ -46,49 +54,42 @@ class _HoodJunctionAppState extends ConsumerState<HoodJunctionApp> with WidgetsB
     return MaterialApp(
       title: 'HoodJunction',
       debugShowCheckedModeBanner: false,
-      theme: _buildTheme(),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       home: Stack(
         children: [
           _buildHome(authState),
           const ConnectivityBanner(),
         ],
       ),
+      routes: {
+        '/profile-setup': (context) => const ProfileSetupScreen(),
+        '/society-selection': (context) => const SocietySelectionScreen(),
+        '/unit-selection': (context) {
+          final society = ModalRoute.of(context)!.settings.arguments as SocietyModel;
+          return UnitSelectionScreen(society: society);
+        },
+        '/allocation-request': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return AllocationRequestScreen(
+            society: args['society'] as SocietyModel,
+            unit: args['unit'] as UnitModel,
+          );
+        },
+        '/request-submitted': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return RequestSubmittedScreen(
+            society: args['society'] as SocietyModel,
+            unit: args['unit'] as UnitModel,
+          );
+        },
+        '/home': (context) => const HomeScreen(),
+      },
     );
   }
 
-  ThemeData _buildTheme() {
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF2E7D32), // Green theme for society app
-        brightness: Brightness.light,
-      ),
-      appBarTheme: const AppBarTheme(
-        centerTitle: true,
-        elevation: 0,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-    );
-  }
+
 
   Widget _buildHome(AuthState authState) {
     if (authState.isLoading) {

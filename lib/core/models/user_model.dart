@@ -42,6 +42,18 @@ class UserModel extends Equatable {
   
   @HiveField(11)
   final DateTime? lastSyncAt;
+  
+  @HiveField(12)
+  final String? societyId;
+  
+  @HiveField(13)
+  final String? unitId;
+  
+  @HiveField(14)
+  final bool isProfileComplete;
+  
+  @HiveField(15)
+  final bool hasAllocation;
 
   const UserModel({
     required this.id,
@@ -56,6 +68,10 @@ class UserModel extends Equatable {
     this.aadharNumber,
     this.panNumber,
     this.lastSyncAt,
+    this.societyId,
+    this.unitId,
+    this.isProfileComplete = false,
+    this.hasAllocation = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
@@ -74,6 +90,10 @@ class UserModel extends Equatable {
     String? aadharNumber,
     String? panNumber,
     DateTime? lastSyncAt,
+    String? societyId,
+    String? unitId,
+    bool? isProfileComplete,
+    bool? hasAllocation,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -88,6 +108,10 @@ class UserModel extends Equatable {
       aadharNumber: aadharNumber ?? this.aadharNumber,
       panNumber: panNumber ?? this.panNumber,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+      societyId: societyId ?? this.societyId,
+      unitId: unitId ?? this.unitId,
+      isProfileComplete: isProfileComplete ?? this.isProfileComplete,
+      hasAllocation: hasAllocation ?? this.hasAllocation,
     );
   }
 
@@ -105,5 +129,9 @@ class UserModel extends Equatable {
         aadharNumber,
         panNumber,
         lastSyncAt,
+        societyId,
+        unitId,
+        isProfileComplete,
+        hasAllocation,
       ];
 }

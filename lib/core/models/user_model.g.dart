@@ -29,13 +29,17 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       aadharNumber: fields[9] as String?,
       panNumber: fields[10] as String?,
       lastSyncAt: fields[11] as DateTime?,
+      societyId: fields[12] as String?,
+      unitId: fields[13] as String?,
+      isProfileComplete: fields[14] as bool,
+      hasAllocation: fields[15] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -59,7 +63,15 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       ..writeByte(10)
       ..write(obj.panNumber)
       ..writeByte(11)
-      ..write(obj.lastSyncAt);
+      ..write(obj.lastSyncAt)
+      ..writeByte(12)
+      ..write(obj.societyId)
+      ..writeByte(13)
+      ..write(obj.unitId)
+      ..writeByte(14)
+      ..write(obj.isProfileComplete)
+      ..writeByte(15)
+      ..write(obj.hasAllocation);
   }
 
   @override
@@ -92,6 +104,10 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
       lastSyncAt: json['lastSyncAt'] == null
           ? null
           : DateTime.parse(json['lastSyncAt'] as String),
+      societyId: json['societyId'] as String?,
+      unitId: json['unitId'] as String?,
+      isProfileComplete: json['isProfileComplete'] as bool? ?? false,
+      hasAllocation: json['hasAllocation'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -107,4 +123,8 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
       'aadharNumber': instance.aadharNumber,
       'panNumber': instance.panNumber,
       'lastSyncAt': instance.lastSyncAt?.toIso8601String(),
+      'societyId': instance.societyId,
+      'unitId': instance.unitId,
+      'isProfileComplete': instance.isProfileComplete,
+      'hasAllocation': instance.hasAllocation,
     };

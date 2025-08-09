@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
-import '../models/auth_models.dart';
 import '../repositories/auth_repository.dart';
-import '../services/biometric_service.dart';
 
 // Auth Repository Provider
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -42,19 +40,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (isLoggedIn) {
         final user = _authRepository.getCurrentUser();
         if (user != null) {
-          // Convert UserModel to UserData for the new AuthState
-          final userData = UserData(
-            id: user.id,
-            email: user.email,
-            phoneNumber: user.phoneNumber,
-            role: user.role,
-            displayName: user.displayName,
-            profilePicture: user.profilePicture,
-            isProfileActive: user.isProfileActive,
-            createdAt: DateTime.now(), // Fallback
-            updatedAt: DateTime.now(), // Fallback
-          );
-          state = AuthState.authenticated(userData);
+          state = AuthState.authenticated(user);
         } else {
           state = const AuthState.unauthenticated();
         }
@@ -66,57 +52,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Send OTP to phone number
-  Future<String?> sendOTP(String phoneNumber) async {
-    try {
-      final result = await _authRepository.sendOTP(phoneNumber);
-      if (result.isSuccess) {
-        return result.verificationId;
-      } else {
-        state = AuthState.error(result.error ?? 'Failed to send OTP');
-        return null;
-      }
-    } catch (e) {
-      state = AuthState.error(e.toString());
-      return null;
-    }
-  }
-
-  // Verify OTP and login
-  Future<void> verifyOTPAndLogin({
-    required String verificationId,
-    required String otp,
-  }) async {
-    state = const AuthState.loading();
-    
-    try {
-      final result = await _authRepository.verifyOTPAndLogin(
-        verificationId: verificationId,
-        otp: otp,
-      );
-      
-      if (result.isSuccess && result.user != null) {
-        final userData = UserData(
-          id: result.user!.id,
-          email: result.user!.email,
-          phoneNumber: result.user!.phoneNumber,
-          role: result.user!.role,
-          displayName: result.user!.displayName,
-          profilePicture: result.user!.profilePicture,
-          isProfileActive: result.user!.isProfileActive,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-        state = AuthState.authenticated(userData);
-      } else {
-        state = AuthState.error(result.error ?? 'Login failed');
-      }
-    } catch (e) {
-      state = AuthState.error(e.toString());
-    }
-  }
-
-  // Login with Firebase token (for backward compatibility)
   Future<void> loginWithFirebaseToken(String firebaseToken) async {
     state = const AuthState.loading();
     
@@ -124,71 +59,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final result = await _authRepository.loginWithFirebaseToken(firebaseToken);
       
       if (result.isSuccess && result.user != null) {
-        final userData = UserData(
-          id: result.user!.id,
-          email: result.user!.email,
-          phoneNumber: result.user!.phoneNumber,
-          role: result.user!.role,
-          displayName: result.user!.displayName,
-          profilePicture: result.user!.profilePicture,
-          isProfileActive: result.user!.isProfileActive,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-        state = AuthState.authenticated(userData);
+        state = AuthState.authenticated(result.user!);
       } else {
         state = AuthState.error(result.error ?? 'Login failed');
       }
     } catch (e) {
       state = AuthState.error(e.toString());
     }
-  }
-
-  // Biometric login
-  Future<void> loginWithBiometric() async {
-    state = const AuthState.loading();
-    
-    try {
-      final result = await _authRepository.loginWithBiometric();
-      
-      if (result.isSuccess && result.user != null) {
-        final userData = UserData(
-          id: result.user!.id,
-          email: result.user!.email,
-          phoneNumber: result.user!.phoneNumber,
-          role: result.user!.role,
-          displayName: result.user!.displayName,
-          profilePicture: result.user!.profilePicture,
-          isProfileActive: result.user!.isProfileActive,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-        state = AuthState.authenticated(userData);
-      } else {
-        state = AuthState.error(result.error ?? 'Biometric login failed');
-      }
-    } catch (e) {
-      state = AuthState.error(e.toString());
-    }
-  }
-
-  // Enable biometric login
-  Future<bool> enableBiometricLogin() async {
-    try {
-      return await _authRepository.enableBiometricLogin();
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // Check if biometric is available
-  Future<bool> isBiometricAvailable() async {
-    return await BiometricService.isBiometricAvailable();
-  }
-
-  // Check if biometric login is enabled
-  Future<bool> isBiometricLoginEnabled() async {
-    return await BiometricService.isBiometricLoginEnabled();
   }
 
   Future<void> updateProfile({
@@ -240,11 +117,64 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-// Additional providers for biometric functionality
-final biometricAvailableProvider = FutureProvider<bool>((ref) async {
-  return await BiometricService.isBiometricAvailable();
-});
+class AuthState {
+  final bool isAuthenticated;
+  final bool isLoading;
+  final UserModel? user;
+  final String? error;
 
-final biometricEnabledProvider = FutureProvider<bool>((ref) async {
-  return await BiometricService.isBiometricLoginEnabled();
-});
+  const AuthState._({
+    required this.isAuthenticated,
+    required this.isLoading,
+    this.error,
+    this.user
+  });
+
+  const AuthState.initial()
+      : isAuthenticated = false,
+        isLoading = true,
+        user = null,
+        error = null;
+
+  const AuthState.loading()
+      : isAuthenticated = false,
+        isLoading = true,
+        user = null,
+        error = null;
+
+  const AuthState.authenticated(UserModel user)
+      : isAuthenticated = true,
+        isLoading = false,
+        user = user,
+        error = null;
+
+  const AuthState.unauthenticated()
+      : isAuthenticated = false,
+        isLoading = false,
+        user = null,
+        error = null;
+
+  const AuthState.error(String error)
+      : isAuthenticated = false,
+        isLoading = false,
+        user = null,
+        error = error;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is AuthState &&
+        other.isAuthenticated == isAuthenticated &&
+        other.isLoading == isLoading &&
+        other.user == user &&
+        other.error == error;
+  }
+
+  @override
+  int get hashCode {
+    return isAuthenticated.hashCode ^
+        isLoading.hashCode ^
+        user.hashCode ^
+        error.hashCode;
+  }
+}
